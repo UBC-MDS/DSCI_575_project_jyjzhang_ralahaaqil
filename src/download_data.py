@@ -1,6 +1,6 @@
 from datasets import load_dataset
 
-DATASET = "All_Beauty"
+DATASET = "Software"
 
 def download_data():
     print(f"Downloading {DATASET} dataset...")
