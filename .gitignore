@@ -1,4 +1,5 @@
 .env
-data/
 __pycache__/
 outputs/
+data/processed
+data/raw
