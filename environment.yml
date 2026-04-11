@@ -10,6 +10,7 @@ dependencies:
   - duckdb=1.4.3
   - langchain=1.2.15
   - langchain-community=0.3.31
+  - streamlit=1.55
   - pip
   - pip:
       - rank-bm25=0.2.2
