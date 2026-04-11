@@ -2,43 +2,53 @@ import duckdb
 from pathlib import Path
 from typing import Any
 
+
+def _sql_double_quoted_ident(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
 def read_parquet(path: Path, columns: list[str]) -> duckdb.DuckDBPyRelation:
+    """Load Parquet at path into DuckDB and return a relation with only the named columns."""
     data = duckdb.read_parquet(str(path))
     return duckdb.sql(f"SELECT {', '.join(columns)} FROM data")
 
-def join_columns(
+def concat_columns(
     data: duckdb.DuckDBPyRelation,
-    merge_columns: list[str],
-    other_columns: list[str],
+    columns: list[str],
     *,
     separator: str = " ",
     new_column_name: str = "data_content",
 ) -> duckdb.DuckDBPyRelation:
-    """Concatenate merge_columns with separator, skipping nulls; keep other_columns as-is."""
+    """Concatenate merge_columns with separator (nulls skipped); keep all other columns via EXCLUDE."""
     sep_lit = separator.replace("'", "''")
-    merge_expr = ", ".join(f"CAST({column} AS VARCHAR)" for column in merge_columns)
-    tail = f", {', '.join(other_columns)}" if other_columns else ""
+    idents = [_sql_double_quoted_ident(c) for c in columns]
+    merge_expr = ", ".join(f"CAST({ident} AS VARCHAR)" for ident in idents)
+    exclude = ", ".join(idents)
+    alias = _sql_double_quoted_ident(new_column_name)
     return duckdb.sql(
-        f"SELECT concat_ws('{sep_lit}', {merge_expr}) AS {new_column_name}{tail} FROM data"
+        f"SELECT concat_ws('{sep_lit}', {merge_expr}) AS {alias}, * EXCLUDE ({exclude}) FROM data"
     )
 
 def filter_by_column(data: duckdb.DuckDBPyRelation, column_name: str, value: Any) -> duckdb.DuckDBPyRelation:
+    """Keep rows where column_name equals value."""
     return duckdb.sql(f"SELECT * FROM data WHERE {column_name} = {value}")
 
 def collapse_array_to_string(
     data: duckdb.DuckDBPyRelation,
     column_names: list[str],
-    other_columns: list[str] | None = None,
 ) -> duckdb.DuckDBPyRelation:
-    """Turn each LIST/varchar[] column in column_names into a single varchar via array_to_string; keep other_columns as-is."""
-    other = other_columns or []
-    collapsed = [f"array_to_string({col}, ', ') AS {col}" for col in column_names]
-    select_parts = [*other, *collapsed]
-    return duckdb.sql(f"SELECT {', '.join(select_parts)} FROM data")
+    """Turn each LIST/varchar[] column in column_names into varchar via array_to_string; keep all other columns via EXCLUDE."""
+    idents = [_sql_double_quoted_ident(c) for c in column_names]
+    collapsed = [f"array_to_string({ident}, ', ') AS {ident}" for ident in idents]
+    exclude = ", ".join(idents)
+    return duckdb.sql(
+        f"SELECT {', '.join(collapsed)}, * EXCLUDE ({exclude}) FROM data"
+    )
 
 def convert_nan_to_negative_one(
     data: duckdb.DuckDBPyRelation, columns: list[str]
 ) -> duckdb.DuckDBPyRelation:
+    """Replace NULL and NaN with -1 in the listed numeric columns; leave other columns unchanged."""
     replacements = ", ".join(
         f"CASE WHEN {c} IS NULL OR isnan({c}) THEN -1 ELSE {c} END AS {c}"
         for c in columns
@@ -48,6 +58,7 @@ def convert_nan_to_negative_one(
 def convert_string_to_json(
     data: duckdb.DuckDBPyRelation, columns: list[str]
 ) -> duckdb.DuckDBPyRelation:
+    """Cast each listed column to JSON in place; leave other columns unchanged."""
     replacements = ", ".join(
         f"CAST({c} AS JSON) AS {c}"
         for c in columns
