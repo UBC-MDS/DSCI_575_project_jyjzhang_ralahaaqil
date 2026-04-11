@@ -1,0 +1,3 @@
+[client]
+# Hides developer toolbar controls (including the Deploy button) when running locally.
+toolbarMode = "viewer"
