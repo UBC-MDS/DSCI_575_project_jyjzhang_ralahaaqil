@@ -28,6 +28,15 @@ conda env create -f environment.yml
 conda activate 575-project
 ```
 
+### Setting API Keys
+
+Create a `.env` file with the following contents, filling in the ellipses with your corresponding tokens:
+
+```
+HF_TOKEN=...
+ANTHROPIC_API_KEY=...  # Last milestone only
+```
+
 ### Data Preparation
 
 Download the data and process it using the following commands:

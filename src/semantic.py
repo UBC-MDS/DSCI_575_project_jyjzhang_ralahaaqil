@@ -8,7 +8,11 @@ import duckdb
 import pandas as pd
 from pathlib import Path
 import argparse
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+hf_token = os.getenv('HF_TOKEN')
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PREPROCESSED_PARQUET = PROJECT_ROOT / "data" / "processed" / "preprocessed_data.parquet"
