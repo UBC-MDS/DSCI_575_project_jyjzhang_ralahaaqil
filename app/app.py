@@ -210,7 +210,7 @@ def main() -> None:
         if st.session_state.bm25_error:
             st.error(st.session_state.bm25_error)
         elif st.session_state.bm25_results:
-            for i, (score, doc) in enumerate(st.session_state.bm25_results, start=1):
+            for i, (doc, score) in enumerate(st.session_state.bm25_results, start=1):
                 _render_hit(i, score, doc)
         else:
             st.info("Enter a query and press **Search** or **Enter** to run BM25 retrieval.")
