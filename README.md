@@ -65,7 +65,34 @@ make run-app
 
 ## Retrieval Workflows
 
+The following steps can be used to run the retrieval workflows from the root directory. This returns a list of (Document, score) tuples for the queried items.
+
+Run Python in the terminal using
+
+```bash
+python
+```
+
 ### BM25 Search
+
+Perform a BM25 search for a query using the following steps in Python:
+
+```python
+from src.bm25 import search
+
+search(query, top_k=k)
+```
+
+Where `query` is the desired query string and `k` is the number of results to return.
 
 ### Semantic Search
 
+Perform a semantic search for a query using the following steps in Python:
+
+```python
+from src.semantic import faiss_search
+
+faiss_search(query, top_k=k)
+```
+
+Where `query` is the desired query string and `k` is the number of results to return.
