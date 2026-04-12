@@ -108,7 +108,7 @@ def faiss_search(
     return results 
 
 def main():
-    create_faiss_index()
+    create_faiss_index(batch_size=10, total_size=30)
     print("FAISS index created")
 
 if __name__ == "__main__":

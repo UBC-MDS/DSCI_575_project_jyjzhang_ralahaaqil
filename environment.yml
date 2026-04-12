@@ -8,10 +8,11 @@ dependencies:
   - ipykernel=7.2.0
   - datasets=3.6.0
   - duckdb=1.4.3
-  - sentence-transformers=5.4.0
   - faiss=1.10.0
   - langchain=1.2.15
   - langchain-community=0.3.31
   - pip
   - pip:
-      - rank-bm25=0.2.2
+      - rank-bm25==0.2.2
+      - langchain_huggingface==1.2.1
+      - sentence-transformers==5.4.0
