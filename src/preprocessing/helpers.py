@@ -113,3 +113,18 @@ def select_columns(
 def duplicate_column(data: duckdb.DuckDBPyRelation, column_name: str, new_column_name: str) -> duckdb.DuckDBPyRelation:
     """Duplicate the column and rename it to the new column name"""
     return duckdb.sql(f"SELECT {column_name} AS {new_column_name}, * FROM data")
+
+def concat_rows(
+    data: duckdb.DuckDBPyRelation,
+    id_column: str,
+    content_column: str,
+    *,
+    separator: str = " ",
+) -> duckdb.DuckDBPyRelation:
+    """One row per id_column; content_column is string_agg of all values sharing that id (nulls skipped)."""
+    id_ident = _sql_double_quoted_ident(id_column)
+    content_ident = _sql_double_quoted_ident(content_column)
+    sep_lit = separator.replace("'", "''")
+    return duckdb.sql(
+        f"SELECT {id_ident}, string_agg(CAST({content_ident} AS VARCHAR), '{sep_lit}') AS {content_ident} FROM data GROUP BY {id_ident}"
+    )
