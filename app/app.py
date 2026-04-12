@@ -5,15 +5,17 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import duckdb
 import streamlit as st
 from langchain_core.documents import Document
 
 APP_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = APP_DIR.parent
+REVIEWS_PARQUET = PROJECT_ROOT / "data" / "raw" / "reviews.parquet"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.bm25 import search_all_shards 
+from src.bm25 import search
 
 MOCK_RESULTS = [
     {
@@ -82,11 +84,41 @@ def _metadata_rating(metadata: dict) -> float | None:
     return r
 
 
-def _review_display_text(doc: Document) -> str:
-    md = doc.metadata
-    review = md.get("review_text")
-    if review is not None and str(review).strip():
-        return str(review).strip()
+@st.cache_data(show_spinner=False)
+def _first_raw_review_text(parent_asin: str) -> str | None:
+    """First matching row in raw reviews for this ASIN (ordered by title, text)."""
+    if not REVIEWS_PARQUET.is_file():
+        return None
+    try:
+        with duckdb.connect() as con:
+            row = con.execute(
+                """
+                SELECT title, text
+                FROM read_parquet(?)
+                WHERE parent_asin = ?
+                ORDER BY title NULLS FIRST, text NULLS FIRST
+                LIMIT 1
+                """,
+                [str(REVIEWS_PARQUET.resolve()), parent_asin],
+            ).fetchone()
+    except Exception:
+        return None
+    if not row:
+        return None
+    title, text = row[0], row[1]
+    parts: list[str] = []
+    if title is not None and str(title).strip():
+        parts.append(str(title).strip())
+    if text is not None and str(text).strip():
+        parts.append(str(text).strip())
+    return " ".join(parts) if parts else None
+
+
+def _review_snippet_for_hit(doc: Document, parent_asin: str | None) -> str:
+    if parent_asin:
+        raw = _first_raw_review_text(parent_asin)
+        if raw:
+            return raw
     return doc.page_content
 
 
@@ -100,12 +132,13 @@ def _render_hit(rank: int, score: float, doc: Document) -> None:
     else:
         title_line = f"Unknown product (ASIN: `{asin or '—'}`)"
     rating = _metadata_rating(md)
+    asin_lookup = (str(asin).strip() if asin is not None else "") or None
 
     with st.container(border=True):
         st.markdown(f"**{rank}. {title_line}**")
         if product_str and asin:
             st.caption(f"ASIN: `{asin}`")
-        st.caption(_truncate(_review_display_text(doc)))
+        st.caption(_truncate(_review_snippet_for_hit(doc, asin_lookup)))
         col_rating, col_score = st.columns(2)
         with col_rating:
             if rating is not None:
@@ -156,14 +189,14 @@ def main() -> None:
 
     if search_mode == "BM25":
         st.caption(
-            "BM25 over sharded index. "
+            "BM25 over the full preprocessed index. "
             f'Last query: "{query.strip() or "—"}"'
         )
 
         if submitted and query.strip():
-            with st.spinner("Searching BM25 shards (this may take a while)…"):
+            with st.spinner("Searching BM25 index…"):
                 try:
-                    st.session_state.bm25_results = search_all_shards(
+                    st.session_state.bm25_results = search(
                         query.strip(), top_k=3
                     )
                     st.session_state.bm25_error = None

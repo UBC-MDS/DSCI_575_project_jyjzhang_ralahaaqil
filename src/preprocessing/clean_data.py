@@ -15,15 +15,15 @@ from src.preprocessing.constants import REVIEWS, METADATA
 
 from src.preprocessing.helpers import (read_parquet, filter_by_column, concat_columns, 
                                        collapse_array_to_string, convert_nan_to_negative_one, 
-                                       convert_string_to_json, expand_json_to_columns, select_columns, duplicate_column)
+                                       convert_string_to_json, expand_json_to_columns, select_columns, duplicate_column, concat_rows)
 
 
 def clean_reviews(params: dict[str, dict[str, Any]] = REVIEWS) -> duckdb.DuckDBPyRelation:
     print(f"Cleaning reviews...")
     reviews = read_parquet(params["READ"]["path"], params["READ"]["columns_to_keep"])
     reviews = filter_by_column(reviews, params["FILTER"]["column"], params["FILTER"]["value"])
-    reviews = duplicate_column(reviews, params["DUPLICATE"]["column"], params["DUPLICATE"]["new_column_name"])
     reviews = concat_columns(reviews, params["CONCAT"]["columns"], new_column_name=params["CONCAT"]["new_column_name"])
+    reviews = concat_rows(reviews, params["CONCAT"]["id_column"], params["CONCAT"]["content_column"])
     reviews = select_columns(reviews, params["FINAL_COLUMNS"])
     return reviews 
 
@@ -42,7 +42,7 @@ def clean_metadata(params: dict[str, dict[str, Any]] = METADATA) -> duckdb.DuckD
 
 def merge_reviews_and_metadata(reviews: duckdb.DuckDBPyRelation, metadata: duckdb.DuckDBPyRelation) -> duckdb.DuckDBPyRelation:
     print(f"Merging reviews and metadata...")
-    joined = duckdb.sql("SELECT * FROM reviews LEFT JOIN metadata USING (parent_asin)")
+    joined = duckdb.sql("SELECT * FROM reviews INNER JOIN metadata USING (parent_asin)")
     final = concat_columns(joined, ["reviews_content", "metadata_content"])
     return final
 
@@ -52,7 +52,7 @@ def main():
         print(f"DEBUG mode enabled — process RAM before cleaning: {psutil.Process().memory_info().rss / (1024**2):.1f} MiB")
     
     merged = merge_reviews_and_metadata(clean_reviews(), clean_metadata())
-    merged = select_columns(merged, ["parent_asin", "product", "review_text", "average_rating", "rating_number", "data_content"])
+    merged = select_columns(merged, ["parent_asin", "product", "average_rating", "rating_number", "data_content"])
     output_path = PROJECT_ROOT / "data" / "processed" / "preprocessed_data.parquet"
     print(f"Saving preprocessed data to {output_path}... (This may take a while)")
     output_path.parent.mkdir(parents=True, exist_ok=True)
