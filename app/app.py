@@ -17,38 +17,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.bm25 import search
 
-MOCK_RESULTS = [
-    {
-        "title": "Wireless Bluetooth Headphones Pro",
-        "review": (
-            "These sound excellent for the price. Battery life is solid and the noise "
-            "cancellation works well on flights. The ear cups are comfortable for long "
-            "sessions though they can get a bit warm in summer. Pairing was instant on "
-            "my phone. I would buy again."
-        ),
-        "rating": 4.5,
-        "score": 18.42,
-    },
-    {
-        "title": "Stainless Steel French Press",
-        "review": (
-            "Makes great coffee and feels sturdy. The mesh filter is finer than my old "
-            "press so fewer grounds slip through. Cleanup is easy if you rinse right "
-            "away. A little heavy but that is expected for steel."
-        ),
-        "rating": 4.0,
-        "score": 14.07,
-    },
-    {
-        "title": "USB-C Hub with HDMI",
-        "review": (
-            "All ports work as advertised. HDMI is stable at 4K. Gets warm under load "
-            "but not hot. Cable could be longer for my desk setup."
-        ),
-        "rating": 3.5,
-        "score": 9.88,
-    },
-]
+FAISS_INDEX_DIR = PROJECT_ROOT / "outputs" / "faiss_index"
+
+
+def _semantic_search(query: str, *, index_path: str, top_k: int):
+    """Load embedding/FAISS stack only when semantic search runs."""
+    from src.semantic import faiss_search
+
+    return faiss_search(query, index_path=index_path, top_k=top_k)
 
 
 def _truncate(text: str, max_chars: int = 200) -> str:
@@ -69,6 +45,13 @@ def _init_bm25_session() -> None:
         st.session_state.bm25_results = None
     if "bm25_error" not in st.session_state:
         st.session_state.bm25_error = None
+
+
+def _init_semantic_session() -> None:
+    if "semantic_results" not in st.session_state:
+        st.session_state.semantic_results = None
+    if "semantic_error" not in st.session_state:
+        st.session_state.semantic_error = None
 
 
 def _metadata_rating(metadata: dict) -> float | None:
@@ -122,7 +105,13 @@ def _review_snippet_for_hit(doc: Document, parent_asin: str | None) -> str:
     return doc.page_content
 
 
-def _render_hit(rank: int, score: float, doc: Document) -> None:
+def _render_hit(
+    rank: int,
+    score: float,
+    doc: Document,
+    *,
+    metric_label: str = "Retrieval score",
+) -> None:
     md = doc.metadata
     product = md.get("product")
     asin = md.get("parent_asin")
@@ -147,7 +136,7 @@ def _render_hit(rank: int, score: float, doc: Document) -> None:
             else:
                 st.markdown("Rating: **N/A**")
         with col_score:
-            st.metric("Retrieval score", f"{score:.4f}")
+            st.metric(metric_label, f"{score:.4f}")
 
 
 def _hide_streamlit_chrome() -> None:
@@ -167,11 +156,12 @@ def main() -> None:
     _hide_streamlit_chrome()
     st.title("Product review search")
     _init_bm25_session()
+    _init_semantic_session()
 
     st.caption("Search mode")
     search_mode = st.radio(
         "Search mode",
-        options=["BM25", "Semantic", "Hybrid"],
+        options=["BM25", "Semantic"],
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -215,21 +205,37 @@ def main() -> None:
         else:
             st.info("Enter a query and press **Search** or **Enter** to run BM25 retrieval.")
 
-    else:
+    elif search_mode == "Semantic":
         st.caption(
-            "Placeholder data for Semantic / Hybrid (not wired yet). "
-            f'Query: "{query.strip() or "—"}"'
+            "Dense retrieval over the FAISS index (L2 distance; lower is better). "
+            f'Last query: "{query.strip() or "—"}"'
         )
-        for i, item in enumerate(MOCK_RESULTS, start=1):
-            with st.container(border=True):
-                st.markdown(f"**{i}. {item['title']}**")
-                st.caption(_truncate(item["review"]))
-                col_rating, col_score = st.columns(2)
-                with col_rating:
-                    stars = _rating_stars(item["rating"])
-                    st.markdown(f"Rating: {stars} **{item['rating']:.1f}** / 5")
-                with col_score:
-                    st.metric("Retrieval score", f"{item['score']:.2f}")
+
+        if submitted and query.strip():
+            with st.spinner("Searching FAISS index…"):
+                try:
+                    st.session_state.semantic_results = _semantic_search(
+                        query.strip(),
+                        index_path=str(FAISS_INDEX_DIR),
+                        top_k=3,
+                    )
+                    st.session_state.semantic_error = None
+                except FileNotFoundError as exc:
+                    st.session_state.semantic_error = str(exc)
+                    st.session_state.semantic_results = None
+                except Exception as exc:  # pragma: no cover - defensive UI
+                    st.session_state.semantic_error = f"{type(exc).__name__}: {exc}"
+                    st.session_state.semantic_results = None
+
+        if st.session_state.semantic_error:
+            st.error(st.session_state.semantic_error)
+        elif st.session_state.semantic_results:
+            for i, (doc, score) in enumerate(st.session_state.semantic_results, start=1):
+                _render_hit(i, score, doc, metric_label="L2 distance")
+        else:
+            st.info(
+                "Enter a query and press **Search** or **Enter** to run semantic retrieval."
+            )
 
     st.caption(f"Mode selected: **{search_mode}**.")
 

@@ -21,7 +21,19 @@ cd DSCI_575_project_jyjzhang_ralahaaqil
 
 ### Setting Up the Development Environment
 
-Create and activate the development environment using the `environment.yml` file:
+Create the Conda environment with Make (if `575-project` already exists, creation is skipped):
+
+```bash
+make conda-env
+```
+
+The Makefile does not activate Conda in your current shell. Activate the environment before running other commands:
+
+```bash
+conda activate 575-project
+```
+
+Alternatively, create the environment manually:
 
 ```bash
 conda env create -f environment.yml
@@ -36,6 +48,10 @@ Create a `.env` file with the following contents, filling in the ellipses with y
 HF_TOKEN=...
 ANTHROPIC_API_KEY=...  # Last milestone only
 ```
+
+### Setting Up the Project
+
+After activating `575-project`, you can run the full pipeline in one step with `make setup` (or `make setup-sample` to use a sample run for the semantic index - faster setup). The Makefile will handle downloading, cleaning, and indexing the data, and you can then run the web app with `make run-app`. You can also run the individual steps manually.
 
 ### Data Preparation
 
@@ -57,7 +73,7 @@ make semantic
 
 ## Locally Running the App
 
-Run the web app using the following command:
+With `575-project` activated, run the web app using:
 
 ```bash
 make run-app
