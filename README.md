@@ -2,11 +2,25 @@
 
 ## Dataset Description
 
+The data was obtained from the [McAuley-Lab/Amazon-Reviews-2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) release from Hugging Face, specifically the Software split. `make download-data` downloads two Parquet files under `data/raw/`: review-level data from `raw_review_Software` (**4.88 million** rows, with fields such as review `title`, `text`, `parent_asin`, and `verified_purchase`) and product metadata from `raw_meta_Software` (about **89,000** products with titles, aggregate ratings, features, descriptions, store, categories, and per-item `details`). Separately, `data/queries.csv` stores a query set: each row has three natural-language queries corresponding to easy, medium, and complex difficulty, for testing the retrieval system.
+
 ## Data Processing
 
 ### Fields Used
 
+From **reviews** (`data/raw/reviews.parquet`), we only read `title`, `text`, `parent_asin`, and `verified_purchase`. Other raw fields (`rating`, `images`, `asin`, `user_id`, `timestamp`, `helpful_vote`, etc.) are excluded at read time: they are either non-text, redundant with metadata, out of scope, or sparse.
+
+From **metadata** (`data/raw/metadata.parquet`), we read `title`, `average_rating`, `rating_number`, `features`, `description`, `store`, `categories`, `details`, and `parent_asin`. Omitted columns include `main_category`, `price`, `images`, `videos`, and fields that are empty for all rows (`bought_together`, `subtitle`, `author`).
+
+The processed table `data/processed/preprocessed_data.parquet` keeps `**parent_asin`**, `**product**` (duplicate of the catalog title for display), `**average_rating**`, `**rating_number**`, and `**data_content**`: one text field that combines all verified, aggregated review text with the flattened metadata text used for retrieval.
+
 ### Preprocessing Steps
+
+Preprocessing is implemented with **DuckDB** over Parquet (`src/preprocessing/clean_data.py`, configuration in `constants.py`) so large tables are filtered and joined without loading everything into pandas. The pipeline has three stages, as in the milestone notebook:
+
+1. **Reviews** — Keep verified purchases only -> build `reviews_content` by concatenating each review’s `title` and `text` -> group by `parent_asin` and join all review strings into a single blob per product.
+2. **Metadata** — Copy `title` to `product` -> turn list columns `categories`, `features`, and `description` into comma-separated strings -> replace missing `average_rating` / `rating_number` with **-1** -> parse `details` as JSON and expand selected keys (`Developed By`, `Version`, `Application Permissions`, `Minimum Operating System`, `Manufacturer`, `Language`) into columns -> concatenate those fields plus `features`, `description`, `store`, `categories`, and `title` into `**metadata_content`**.
+3. **Merge** — **Inner join** on `parent_asin` so a row exists only when both aggregated verified reviews and metadata exist -> append `reviews_content` and `metadata_content` into `**data_content`** for indexing and search.
 
 ## Setup
 
