@@ -14,6 +14,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PREPROCESSED_PARQUET = PROJECT_ROOT / "data" / "processed" / "preprocessed_data.parquet"
 BATCH_SIZE = 100_000
 TOTAL_SIZE = 4_645_281
+metadata_cols = [
+        "product",
+        "parent_asin",
+        "average_rating",
+        "rating_number",
+        "review_text"
+    ]
 
 def read_chunk(path: Path = DEFAULT_PREPROCESSED_PARQUET, start: int = 0, end: int = 10000) -> pd.DataFrame:
     if end < start:
@@ -28,11 +35,8 @@ def read_chunk(path: Path = DEFAULT_PREPROCESSED_PARQUET, start: int = 0, end: i
 def parquet_to_documents(
     df: pd.DataFrame,
     content_column: str = "data_content",
-    metadata_columns: list[str] = None
+    metadata_columns: list[str] = metadata_cols
 ):
-    if metadata_columns is None:
-        metadata_columns = [col for col in df.columns if col != content_column]
-    
     documents = []
     for idx, row in df.iterrows():
         metadata = {col: row[col] for col in metadata_columns}
@@ -54,9 +58,7 @@ def create_faiss_index(
     path: Path = DEFAULT_PREPROCESSED_PARQUET,
     index_path: str = "outputs/faiss_index",
     content_column: str = "data_content",
-    metadata_columns: list[str] = [
-        "parent_asin", "average_rating", "rating_number" # add product
-        ],
+    metadata_columns: list[str] = metadata_cols,
     model_name: str = "all-MiniLM-L6-v2",
     batch_size: int = 100000,
     total_size: int = 4645281
