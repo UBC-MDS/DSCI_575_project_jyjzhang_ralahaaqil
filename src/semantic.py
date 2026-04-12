@@ -10,6 +10,16 @@ from pathlib import Path
 import argparse
 from dotenv import load_dotenv
 import os
+import logging
+from transformers import logging as transformers_logging
+from tqdm import tqdm
+from functools import partialmethod
+
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+transformers_logging.set_verbosity_error()
+logging.getLogger("transformers").setLevel(logging.ERROR)
+
+tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
 load_dotenv()
 hf_token = os.getenv('HF_TOKEN')
