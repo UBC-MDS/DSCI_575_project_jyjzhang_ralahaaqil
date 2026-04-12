@@ -100,3 +100,16 @@ def expand_json_to_columns(
     return duckdb.sql(
         f"SELECT * EXCLUDE ({json_column}), {tail} FROM data"
     )
+    
+def select_columns(
+    data: duckdb.DuckDBPyRelation,
+    columns: list[str],
+) -> duckdb.DuckDBPyRelation:
+    """Select only the listed columns"""
+    idents = [_sql_double_quoted_ident(c) for c in columns]
+    exclude = ", ".join(idents)
+    return duckdb.sql(f"SELECT {', '.join(idents)} FROM data")
+
+def duplicate_column(data: duckdb.DuckDBPyRelation, column_name: str, new_column_name: str) -> duckdb.DuckDBPyRelation:
+    """Duplicate the column and rename it to the new column name"""
+    return duckdb.sql(f"SELECT {column_name} AS {new_column_name}, * FROM data")

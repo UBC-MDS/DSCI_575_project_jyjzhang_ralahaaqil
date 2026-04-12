@@ -4,9 +4,10 @@ from pathlib import Path
 from datasets import load_dataset
 
 DATASET = "Software"
-DEBUG = True
+DEBUG = False
 
 def download_data():
+    print("======================== DOWNLOADING DATA ==========================")
     Path("data/raw").mkdir(exist_ok=True)
     print(f"Created data/raw directory")
 
