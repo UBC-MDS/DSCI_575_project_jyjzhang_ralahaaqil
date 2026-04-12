@@ -14,5 +14,11 @@ bm25:
 bm25-sample:
 	$(PYTHON) -m src.bm25 --sample
 
+semantic:
+	$(PYTHON) -m src.semantic
+
+semantic-sample:
+	$(PYTHON) -m src.semantic --sample
+
 run-app:
 	$(PYTHON) -m streamlit run app/app.py
