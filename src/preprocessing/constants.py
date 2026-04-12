@@ -17,12 +17,10 @@ REVIEWS = {
     "CONCAT": {
         "columns": ["title", "text"],
         "new_column_name": "reviews_content",
+        "id_column": "parent_asin",
+        "content_column": "reviews_content",
     },
-    "DUPLICATE": {
-        "column": "text",
-        "new_column_name": "review_text",
-    },
-    "FINAL_COLUMNS": ["parent_asin", "reviews_content", "review_text"],
+    "FINAL_COLUMNS": ["parent_asin", "reviews_content"],
 }
 
 METADATA = {
