@@ -7,6 +7,7 @@ import json
 import duckdb
 import pandas as pd
 from pathlib import Path
+import argparse
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -107,9 +108,19 @@ def faiss_search(
     
     return results 
 
-def main():
-    create_faiss_index(batch_size=10, total_size=30)
+def main(sample: bool = False):
+    if sample:
+        create_faiss_index(total_size=500000)
+    else:
+        create_faiss_index()
     print("FAISS index created")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Create BM25 shard pickles from preprocessed Parquet.")
+    parser.add_argument(
+        "--sample",
+        action="store_true",
+        help=f"Create index on 500000 rows instead of the full {TOTAL_SIZE:,}-row dataset.",
+    )
+    args = parser.parse_args()
+    main(sample=args.sample)
