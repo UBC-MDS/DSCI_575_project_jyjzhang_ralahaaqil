@@ -11,5 +11,11 @@ clean-data:
 bm25:
 	$(PYTHON) -m src.bm25
 
+semantic:
+	$(PYTHON) -m src.semantic
+
+semantic-sample:
+	$(PYTHON) -m src.semantic --sample
+
 run-app:
 	$(PYTHON) -m streamlit run app/app.py
