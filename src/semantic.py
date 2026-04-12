@@ -12,15 +12,14 @@ import argparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PREPROCESSED_PARQUET = PROJECT_ROOT / "data" / "processed" / "preprocessed_data.parquet"
-BATCH_SIZE = 100_000
-TOTAL_SIZE = 4_645_281
+BATCH_SIZE = 10000
+TOTAL_SIZE = 84804
 metadata_cols = [
-        "product",
-        "parent_asin",
-        "average_rating",
-        "rating_number",
-        "review_text"
-    ]
+    "product",
+    "parent_asin",
+    "average_rating",
+    "rating_number",
+]
 
 def read_chunk(path: Path = DEFAULT_PREPROCESSED_PARQUET, start: int = 0, end: int = 10000) -> pd.DataFrame:
     if end < start:
@@ -60,8 +59,8 @@ def create_faiss_index(
     content_column: str = "data_content",
     metadata_columns: list[str] = metadata_cols,
     model_name: str = "all-MiniLM-L6-v2",
-    batch_size: int = 100000,
-    total_size: int = 4645281
+    batch_size: int = BATCH_SIZE,
+    total_size: int = TOTAL_SIZE
 ):
     
     model = HuggingFaceEmbeddings(model_name=model_name)
@@ -112,7 +111,7 @@ def faiss_search(
 
 def main(sample: bool = False):
     if sample:
-        create_faiss_index(total_size=500000)
+        create_faiss_index(batch_size=1000, total_size=10000)
     else:
         create_faiss_index()
     print("FAISS index created")
@@ -122,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sample",
         action="store_true",
-        help=f"Create index on 500000 rows instead of the full {TOTAL_SIZE:,}-row dataset.",
+        help=f"Create index on 10000 rows instead of the full {TOTAL_SIZE:,}-row dataset.",
     )
     args = parser.parse_args()
     main(sample=args.sample)
