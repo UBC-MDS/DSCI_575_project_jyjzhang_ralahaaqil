@@ -52,8 +52,8 @@ def search(
     query: str,
     top_k: int = 5,
     pickle_path: Path = BM25_PICKLE_PATH,
-) -> list[tuple[float, Document]]:
-    """Run BM25 on the single saved index and return the top ``top_k`` (score, document) pairs."""
+) -> list[tuple[Document, float]]:
+    """Run BM25 on the single saved index and return the top ``top_k`` (document, score) pairs."""
     if not pickle_path.is_file():
         raise FileNotFoundError(f"No BM25 index found at {pickle_path}")
 
@@ -64,7 +64,7 @@ def search(
     scores = retriever.vectorizer.get_scores(query_tokens)
     top_indices = nlargest(top_k, range(len(scores)), key=lambda idx: scores[idx])
 
-    return [(float(scores[idx]), retriever.docs[idx]) for idx in top_indices]
+    return [(retriever.docs[idx], float(scores[idx])) for idx in top_indices]
 
 
 def main() -> None:
