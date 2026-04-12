@@ -22,6 +22,7 @@ def clean_reviews(params: dict[str, dict[str, Any]] = REVIEWS) -> duckdb.DuckDBP
     print(f"Cleaning reviews...")
     reviews = read_parquet(params["READ"]["path"], params["READ"]["columns_to_keep"])
     reviews = filter_by_column(reviews, params["FILTER"]["column"], params["FILTER"]["value"])
+    reviews = duplicate_column(reviews, params["DUPLICATE"]["column"], params["DUPLICATE"]["new_column_name"])
     reviews = concat_columns(reviews, params["CONCAT"]["columns"], new_column_name=params["CONCAT"]["new_column_name"])
     reviews = select_columns(reviews, params["FINAL_COLUMNS"])
     return reviews 
@@ -51,7 +52,7 @@ def main():
         print(f"DEBUG mode enabled — process RAM before cleaning: {psutil.Process().memory_info().rss / (1024**2):.1f} MiB")
     
     merged = merge_reviews_and_metadata(clean_reviews(), clean_metadata())
-    merged = select_columns(merged, ["parent_asin", "product", "average_rating", "rating_number", "data_content"])
+    merged = select_columns(merged, ["parent_asin", "product", "review_text", "average_rating", "rating_number", "data_content"])
     output_path = PROJECT_ROOT / "data" / "processed" / "preprocessed_data.parquet"
     print(f"Saving preprocessed data to {output_path}... (This may take a while)")
     output_path.parent.mkdir(parents=True, exist_ok=True)
