@@ -18,7 +18,11 @@ REVIEWS = {
         "columns": ["title", "text"],
         "new_column_name": "reviews_content",
     },
-    "FINAL_COLUMNS": ["parent_asin", "reviews_content"],
+    "DUPLICATE": {
+        "column": "text",
+        "new_column_name": "review_text",
+    },
+    "FINAL_COLUMNS": ["parent_asin", "reviews_content", "review_text"],
 }
 
 METADATA = {

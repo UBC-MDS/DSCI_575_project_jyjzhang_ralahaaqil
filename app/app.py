@@ -82,15 +82,30 @@ def _metadata_rating(metadata: dict) -> float | None:
     return r
 
 
+def _review_display_text(doc: Document) -> str:
+    md = doc.metadata
+    review = md.get("review_text")
+    if review is not None and str(review).strip():
+        return str(review).strip()
+    return doc.page_content
+
+
 def _render_hit(rank: int, score: float, doc: Document) -> None:
     md = doc.metadata
-    asin = md.get("parent_asin", "Unknown")
-    title_line = f"Product (ASIN: `{asin}`)"
+    product = md.get("product")
+    asin = md.get("parent_asin")
+    product_str = str(product).strip() if product is not None else ""
+    if product_str:
+        title_line = product_str
+    else:
+        title_line = f"Unknown product (ASIN: `{asin or '—'}`)"
     rating = _metadata_rating(md)
 
     with st.container(border=True):
         st.markdown(f"**{rank}. {title_line}**")
-        st.caption(_truncate(doc.page_content))
+        if product_str and asin:
+            st.caption(f"ASIN: `{asin}`")
+        st.caption(_truncate(_review_display_text(doc)))
         col_rating, col_score = st.columns(2)
         with col_rating:
             if rating is not None:

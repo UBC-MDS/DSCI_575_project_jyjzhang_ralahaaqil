@@ -42,7 +42,8 @@ def create_shard(data: pd.DataFrame, filename: str) -> None:
     """Build a BM25 retriever from a chunk of preprocessed rows and save it as a pickle.
 
     Each row becomes a LangChain ``Document`` with ``page_content`` from ``data_content``
-    and metadata from ``product``, ``parent_asin``, ``average_rating``, and ``rating_number``.
+    and metadata from ``product``, ``parent_asin``, ``average_rating``, ``rating_number``,
+    and ``review_text``.
 
     Args:
         data: DataFrame containing those columns.
@@ -51,7 +52,13 @@ def create_shard(data: pd.DataFrame, filename: str) -> None:
     Returns:
         None
     """
-    meta_cols = ["product", "parent_asin", "average_rating", "rating_number"]
+    meta_cols = [
+        "product",
+        "parent_asin",
+        "average_rating",
+        "rating_number",
+        "review_text",
+    ]
     metas = data[meta_cols].to_dict("records")
 
     docs = [
@@ -82,7 +89,7 @@ def search_all_shards(query: str, top_k: int = 5, per_shard_k: int | None = None
     if per_shard_k is None:
         per_shard_k = top_k
 
-    all_shards = sorted(OUTPUTS_DIR.glob("*.pkl"))
+    all_shards = list(OUTPUTS_DIR.glob("*.pkl"))
     if not all_shards:
         raise FileNotFoundError(f"No shard pickles found in {OUTPUTS_DIR}")
 
