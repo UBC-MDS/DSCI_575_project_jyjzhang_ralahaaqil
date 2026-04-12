@@ -12,8 +12,9 @@ dependencies:
   - langchain=1.2.15
   - langchain-community=0.3.31
   - streamlit=1.55
+  - sentence-transformers=5.4.0
   - pip
   - pip:
       - rank-bm25==0.2.2
       - langchain_huggingface==1.2.1
-      - sentence-transformers==5.4.0
+
