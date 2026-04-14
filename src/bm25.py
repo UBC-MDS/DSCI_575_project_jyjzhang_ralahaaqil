@@ -1,32 +1,17 @@
-from pathlib import Path
-from heapq import nlargest
-
-import duckdb
-import pandas as pd
 import pickle
-from langchain_core.documents import Document
+from heapq import nlargest
+from pathlib import Path
+
 from langchain_community.retrievers import BM25Retriever
+from langchain_core.documents import Document
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PREPROCESSED_PARQUET = PROJECT_ROOT / "data" / "processed" / "preprocessed_data.parquet"
-OUTPUTS_DIR = PROJECT_ROOT / "outputs"
-BM25_PICKLE_PATH = OUTPUTS_DIR / "bm25_retriever.pkl"
-
-META_COLS = [
-    "product",
-    "parent_asin",
-    "average_rating",
-    "rating_number",
-]
-
-
-def read_preprocessed_parquet(path: Path = DEFAULT_PREPROCESSED_PARQUET) -> pd.DataFrame:
-    """Load the full preprocessed Parquet table."""
-    return duckdb.read_parquet(str(path)).df()
+from src.constants import (
+    BM25_PICKLE_PATH,
+)
+from src.helpers import convert_data_to_docs, read_preprocessed_parquet
 
 
 def create_bm25_pickle(
-    parquet_path: Path = DEFAULT_PREPROCESSED_PARQUET,
     output_path: Path = BM25_PICKLE_PATH,
 ) -> None:
     """Build a BM25 retriever from all preprocessed rows and save it as one pickle.
@@ -34,13 +19,8 @@ def create_bm25_pickle(
     Each row becomes a LangChain ``Document`` with ``page_content`` from ``data_content``
     and metadata from ``product``, ``parent_asin``, ``average_rating``, and ``rating_number``.
     """
-    data = read_preprocessed_parquet(parquet_path)
-    metas = data[META_COLS].to_dict("records")
-
-    docs = [
-        Document(page_content=pc, metadata=md)
-        for pc, md in zip(data["data_content"], metas, strict=True)
-    ]
+    data = read_preprocessed_parquet()
+    docs = convert_data_to_docs(data)
 
     retriever = BM25Retriever.from_documents(docs)
     output_path.parent.mkdir(parents=True, exist_ok=True)
