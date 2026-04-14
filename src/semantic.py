@@ -15,6 +15,13 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from tqdm import tqdm
 from transformers import logging as transformers_logging
 
+from src.constants import (
+    DEFAULT_PREPROCESSED_PARQUET,
+    META_COLS,
+    TOTAL_SIZE,
+)
+from src.helpers import convert_data_to_docs, read_preprocessed_parquet
+
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 transformers_logging.set_verbosity_error()
 logging.getLogger("transformers").setLevel(logging.ERROR)
@@ -23,26 +30,6 @@ tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PREPROCESSED_PARQUET = (
-    PROJECT_ROOT / "data" / "processed" / "preprocessed_data.parquet"
-)
-TOTAL_SIZE = 84804
-metadata_cols = [
-    "product",
-    "parent_asin",
-    "average_rating",
-    "rating_number",
-]
-
-
-def read_preprocessed_parquet(
-    path: Path = DEFAULT_PREPROCESSED_PARQUET,
-    size: int = TOTAL_SIZE,
-) -> pd.DataFrame:
-    """Load the full preprocessed Parquet table."""
-    return duckdb.read_parquet(str(path)).limit(size).df()
 
 
 def create_faiss_index(
@@ -62,17 +49,10 @@ def create_faiss_index(
         index_to_docstore_id={},
     )
 
-    data = read_preprocessed_parquet(path, size=total_size)
-    metas = data[metadata_cols].to_dict("records")
+    data = read_preprocessed_parquet(size=total_size)
+    docs = convert_data_to_docs(data)
 
-    docs = [
-        Document(page_content=pc, metadata=md)
-        for pc, md in zip(data["data_content"], metas, strict=True)
-    ]
-
-    vector_store.add_documents(
-        documents=docs, ids=[meta["parent_asin"] for meta in metas]
-    )
+    vector_store.add_documents(documents=docs)
 
     vector_store.save_local(index_path)
     print("FAISS index saved in {index_path}")
