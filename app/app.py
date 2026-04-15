@@ -9,13 +9,13 @@ import duckdb
 import streamlit as st
 from langchain_core.documents import Document
 
+from src.bm25 import search
+
 APP_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = APP_DIR.parent
 REVIEWS_PARQUET = PROJECT_ROOT / "data" / "raw" / "reviews.parquet"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.bm25 import search
 
 FAISS_INDEX_DIR = PROJECT_ROOT / "outputs" / "faiss_index"
 
@@ -25,6 +25,13 @@ def _semantic_search(query: str, *, index_path: str, top_k: int):
     from src.semantic import faiss_search
 
     return faiss_search(query, index_path=index_path, top_k=top_k)
+
+
+def _hybrid_search(query: str):
+    """Load hybrid stack only when hybrid search runs."""
+    from src.hybrid_retrieval import hybrid_retrieval
+
+    return hybrid_retrieval(query)
 
 
 def _truncate(text: str, max_chars: int = 200) -> str:
@@ -52,6 +59,13 @@ def _init_semantic_session() -> None:
         st.session_state.semantic_results = None
     if "semantic_error" not in st.session_state:
         st.session_state.semantic_error = None
+
+
+def _init_hybrid_session() -> None:
+    if "hybrid_results" not in st.session_state:
+        st.session_state.hybrid_results = None
+    if "hybrid_error" not in st.session_state:
+        st.session_state.hybrid_error = None
 
 
 def _metadata_rating(metadata: dict) -> float | None:
@@ -107,10 +121,11 @@ def _review_snippet_for_hit(doc: Document, parent_asin: str | None) -> str:
 
 def _render_hit(
     rank: int,
-    score: float,
+    score: float | None,
     doc: Document,
     *,
     metric_label: str = "Retrieval score",
+    show_score: bool = True,
 ) -> None:
     md = doc.metadata
     product = md.get("product")
@@ -128,15 +143,19 @@ def _render_hit(
         if product_str and asin:
             st.caption(f"ASIN: `{asin}`")
         st.caption(_truncate(_review_snippet_for_hit(doc, asin_lookup)))
-        col_rating, col_score = st.columns(2)
-        with col_rating:
+        columns = st.columns(2) if show_score else st.columns(1)
+        with columns[0]:
             if rating is not None:
                 stars = _rating_stars(rating)
                 st.markdown(f"Rating: {stars} **{rating:.1f}** / 5")
             else:
                 st.markdown("Rating: **N/A**")
-        with col_score:
-            st.metric(metric_label, f"{score:.4f}")
+        if show_score:
+            with columns[1]:
+                if score is None:
+                    st.metric(metric_label, "N/A")
+                else:
+                    st.metric(metric_label, f"{score:.4f}")
 
 
 def _hide_streamlit_chrome() -> None:
@@ -157,11 +176,12 @@ def main() -> None:
     st.title("Product review search")
     _init_bm25_session()
     _init_semantic_session()
+    _init_hybrid_session()
 
     st.caption("Search mode")
     search_mode = st.radio(
         "Search mode",
-        options=["BM25", "Semantic"],
+        options=["BM25", "Semantic", "Hybrid"],
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -186,9 +206,7 @@ def main() -> None:
         if submitted and query.strip():
             with st.spinner("Searching BM25 index…"):
                 try:
-                    st.session_state.bm25_results = search(
-                        query.strip(), top_k=3
-                    )
+                    st.session_state.bm25_results = search(query.strip(), top_k=3)
                     st.session_state.bm25_error = None
                 except FileNotFoundError as exc:
                     st.session_state.bm25_error = str(exc)
@@ -203,7 +221,9 @@ def main() -> None:
             for i, (doc, score) in enumerate(st.session_state.bm25_results, start=1):
                 _render_hit(i, score, doc)
         else:
-            st.info("Enter a query and press **Search** or **Enter** to run BM25 retrieval.")
+            st.info(
+                "Enter a query and press **Search** or **Enter** to run BM25 retrieval."
+            )
 
     elif search_mode == "Semantic":
         st.caption(
@@ -230,11 +250,42 @@ def main() -> None:
         if st.session_state.semantic_error:
             st.error(st.session_state.semantic_error)
         elif st.session_state.semantic_results:
-            for i, (doc, score) in enumerate(st.session_state.semantic_results, start=1):
+            for i, (doc, score) in enumerate(
+                st.session_state.semantic_results, start=1
+            ):
                 _render_hit(i, score, doc, metric_label="L2 distance")
         else:
             st.info(
                 "Enter a query and press **Search** or **Enter** to run semantic retrieval."
+            )
+
+    elif search_mode == "Hybrid":
+        st.caption(
+            "Hybrid retrieval via EnsembleRetriever (BM25 + FAISS). "
+            f'Last query: "{query.strip() or "—"}"'
+        )
+
+        if submitted and query.strip():
+            with st.spinner("Running hybrid retrieval…"):
+                try:
+                    docs = _hybrid_search(query.strip())
+                    st.session_state.hybrid_results = list(docs)[:3]
+                    st.session_state.hybrid_error = None
+                except FileNotFoundError as exc:
+                    st.session_state.hybrid_error = str(exc)
+                    st.session_state.hybrid_results = None
+                except Exception as exc:  # pragma: no cover - defensive UI
+                    st.session_state.hybrid_error = f"{type(exc).__name__}: {exc}"
+                    st.session_state.hybrid_results = None
+
+        if st.session_state.hybrid_error:
+            st.error(st.session_state.hybrid_error)
+        elif st.session_state.hybrid_results:
+            for i, doc in enumerate(st.session_state.hybrid_results, start=1):
+                _render_hit(i, None, doc, show_score=False)
+        else:
+            st.info(
+                "Enter a query and press **Search** or **Enter** to run hybrid retrieval."
             )
 
     st.caption(f"Mode selected: **{search_mode}**.")
