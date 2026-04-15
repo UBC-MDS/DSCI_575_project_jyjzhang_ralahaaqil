@@ -4,20 +4,16 @@ import os
 from functools import partialmethod
 from pathlib import Path
 
-import duckdb
 import faiss
-import pandas as pd
 from dotenv import load_dotenv
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from tqdm import tqdm
 from transformers import logging as transformers_logging
 
 from src.constants import (
     DEFAULT_PREPROCESSED_PARQUET,
-    META_COLS,
     TOTAL_SIZE,
 )
 from src.helpers import convert_data_to_docs, read_preprocessed_parquet
