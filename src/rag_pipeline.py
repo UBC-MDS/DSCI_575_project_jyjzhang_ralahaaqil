@@ -12,6 +12,7 @@ from transformers import logging as transformers_logging
 
 from src.constants import DEFAULT_PREPROCESSED_PARQUET, OUTPUTS_DIR, TOTAL_SIZE
 from src.helpers import convert_data_to_docs, read_preprocessed_parquet
+from src.hybrid_retrieval import hybrid_retrieval
 
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 transformers_logging.set_verbosity_error()
@@ -99,8 +100,11 @@ def setup_client():
     return client
 
 
-def ask_rag(query: str):
-    docs = retrieve().invoke(query)
+def ask_rag(query: str, hybrid: bool = False):
+    if hybrid:
+        docs = hybrid_retrieval(query)
+    else:
+        docs = retrieve().invoke(query)
     context = build_context(docs)
     prompt = build_prompt(context, query)
     client = setup_client()
