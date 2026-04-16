@@ -60,6 +60,7 @@ Create a `.env` file with the following contents, filling in the ellipses with y
 
 ```
 HF_TOKEN=...
+OLLAMA_API_KEY=...
 ANTHROPIC_API_KEY=...  # Last milestone only
 ```
 
@@ -126,3 +127,15 @@ faiss_search(query, top_k=k)
 ```
 
 Where `query` is the desired query string and `k` is the number of results to return.
+
+### Hybrid Search
+
+Perform a hybrid search for a query using the following steps in Python:
+
+...
+
+## RAG Search
+
+Perform a rag search for a query using the following steps in Python:
+
+...
