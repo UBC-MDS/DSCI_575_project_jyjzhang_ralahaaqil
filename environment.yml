@@ -17,4 +17,5 @@ dependencies:
       - rank-bm25==0.2.2
       - langchain_huggingface==1.2.1
       - sentence-transformers==5.4.0
-
+      - ollama==0.6.1
+      - langchain_classic==1.0.3
