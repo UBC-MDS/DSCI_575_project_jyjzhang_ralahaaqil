@@ -34,6 +34,13 @@ def _hybrid_search(query: str):
     return hybrid_retrieval(query)
 
 
+def _rag_answer(query: str) -> str:
+    """Load RAG stack only when RAG runs."""
+    from src.rag_pipeline import ask_rag
+
+    return ask_rag(query, hybrid=True)
+
+
 def _truncate(text: str, max_chars: int = 200) -> str:
     text = text.strip()
     if len(text) <= max_chars:
@@ -66,6 +73,13 @@ def _init_hybrid_session() -> None:
         st.session_state.hybrid_results = None
     if "hybrid_error" not in st.session_state:
         st.session_state.hybrid_error = None
+
+
+def _init_rag_session() -> None:
+    if "rag_answer" not in st.session_state:
+        st.session_state.rag_answer = None
+    if "rag_error" not in st.session_state:
+        st.session_state.rag_error = None
 
 
 def _metadata_rating(metadata: dict) -> float | None:
@@ -177,118 +191,157 @@ def main() -> None:
     _init_bm25_session()
     _init_semantic_session()
     _init_hybrid_session()
+    _init_rag_session()
 
-    st.caption("Search mode")
-    search_mode = st.radio(
-        "Search mode",
-        options=["BM25", "Semantic", "Hybrid"],
-        horizontal=True,
-        label_visibility="collapsed",
-    )
+    search_tab, rag_tab = st.tabs(["Search", "RAG"])
 
-    with st.form("query_form", clear_on_submit=False):
-        query = st.text_input(
-            "Query",
-            placeholder="e.g. comfortable headphones for travel",
+    with search_tab:
+        st.caption("Search mode")
+        search_mode = st.radio(
+            "Search mode",
+            options=["BM25", "Semantic", "Hybrid"],
+            horizontal=True,
             label_visibility="collapsed",
         )
-        submitted = st.form_submit_button("Search")
 
-    st.divider()
-    st.subheader("Top results")
+        with st.form("query_form", clear_on_submit=False):
+            query = st.text_input(
+                "Query",
+                placeholder="e.g. comfortable headphones for travel",
+                label_visibility="collapsed",
+            )
+            submitted = st.form_submit_button("Search")
 
-    if search_mode == "BM25":
-        st.caption(
-            "BM25 over the full preprocessed index. "
-            f'Last query: "{query.strip() or "—"}"'
-        )
+        st.divider()
+        st.subheader("Top results")
 
-        if submitted and query.strip():
-            with st.spinner("Searching BM25 index…"):
-                try:
-                    st.session_state.bm25_results = search(query.strip(), top_k=3)
-                    st.session_state.bm25_error = None
-                except FileNotFoundError as exc:
-                    st.session_state.bm25_error = str(exc)
-                    st.session_state.bm25_results = None
-                except Exception as exc:  # pragma: no cover - defensive UI
-                    st.session_state.bm25_error = f"{type(exc).__name__}: {exc}"
-                    st.session_state.bm25_results = None
-
-        if st.session_state.bm25_error:
-            st.error(st.session_state.bm25_error)
-        elif st.session_state.bm25_results:
-            for i, (doc, score) in enumerate(st.session_state.bm25_results, start=1):
-                _render_hit(i, score, doc)
-        else:
-            st.info(
-                "Enter a query and press **Search** or **Enter** to run BM25 retrieval."
+        if search_mode == "BM25":
+            st.caption(
+                "BM25 over the full preprocessed index. "
+                f'Last query: "{query.strip() or "—"}"'
             )
 
-    elif search_mode == "Semantic":
-        st.caption(
-            "Dense retrieval over the FAISS index (L2 distance; lower is better). "
-            f'Last query: "{query.strip() or "—"}"'
-        )
+            if submitted and query.strip():
+                with st.spinner("Searching BM25 index…"):
+                    try:
+                        st.session_state.bm25_results = search(query.strip(), top_k=3)
+                        st.session_state.bm25_error = None
+                    except FileNotFoundError as exc:
+                        st.session_state.bm25_error = str(exc)
+                        st.session_state.bm25_results = None
+                    except Exception as exc:  # pragma: no cover - defensive UI
+                        st.session_state.bm25_error = f"{type(exc).__name__}: {exc}"
+                        st.session_state.bm25_results = None
 
-        if submitted and query.strip():
-            with st.spinner("Searching FAISS index…"):
-                try:
-                    st.session_state.semantic_results = _semantic_search(
-                        query.strip(),
-                        index_path=str(FAISS_INDEX_DIR),
-                        top_k=3,
-                    )
-                    st.session_state.semantic_error = None
-                except FileNotFoundError as exc:
-                    st.session_state.semantic_error = str(exc)
-                    st.session_state.semantic_results = None
-                except Exception as exc:  # pragma: no cover - defensive UI
-                    st.session_state.semantic_error = f"{type(exc).__name__}: {exc}"
-                    st.session_state.semantic_results = None
+            if st.session_state.bm25_error:
+                st.error(st.session_state.bm25_error)
+            elif st.session_state.bm25_results:
+                for i, (doc, score) in enumerate(st.session_state.bm25_results, start=1):
+                    _render_hit(i, score, doc)
+            else:
+                st.info(
+                    "Enter a query and press **Search** or **Enter** to run BM25 retrieval."
+                )
 
-        if st.session_state.semantic_error:
-            st.error(st.session_state.semantic_error)
-        elif st.session_state.semantic_results:
-            for i, (doc, score) in enumerate(
-                st.session_state.semantic_results, start=1
-            ):
-                _render_hit(i, score, doc, metric_label="L2 distance")
-        else:
-            st.info(
-                "Enter a query and press **Search** or **Enter** to run semantic retrieval."
+        elif search_mode == "Semantic":
+            st.caption(
+                "Dense retrieval over the FAISS index (L2 distance; lower is better). "
+                f'Last query: "{query.strip() or "—"}"'
             )
 
-    elif search_mode == "Hybrid":
-        st.caption(
-            "Hybrid retrieval via EnsembleRetriever (BM25 + FAISS). "
-            f'Last query: "{query.strip() or "—"}"'
-        )
+            if submitted and query.strip():
+                with st.spinner("Searching FAISS index…"):
+                    try:
+                        st.session_state.semantic_results = _semantic_search(
+                            query.strip(),
+                            index_path=str(FAISS_INDEX_DIR),
+                            top_k=3,
+                        )
+                        st.session_state.semantic_error = None
+                    except FileNotFoundError as exc:
+                        st.session_state.semantic_error = str(exc)
+                        st.session_state.semantic_results = None
+                    except Exception as exc:  # pragma: no cover - defensive UI
+                        st.session_state.semantic_error = f"{type(exc).__name__}: {exc}"
+                        st.session_state.semantic_results = None
 
-        if submitted and query.strip():
-            with st.spinner("Running hybrid retrieval…"):
-                try:
-                    docs = _hybrid_search(query.strip())
-                    st.session_state.hybrid_results = list(docs)[:3]
-                    st.session_state.hybrid_error = None
-                except FileNotFoundError as exc:
-                    st.session_state.hybrid_error = str(exc)
-                    st.session_state.hybrid_results = None
-                except Exception as exc:  # pragma: no cover - defensive UI
-                    st.session_state.hybrid_error = f"{type(exc).__name__}: {exc}"
-                    st.session_state.hybrid_results = None
+            if st.session_state.semantic_error:
+                st.error(st.session_state.semantic_error)
+            elif st.session_state.semantic_results:
+                for i, (doc, score) in enumerate(
+                    st.session_state.semantic_results, start=1
+                ):
+                    _render_hit(i, score, doc, metric_label="L2 distance")
+            else:
+                st.info(
+                    "Enter a query and press **Search** or **Enter** to run semantic retrieval."
+                )
 
-        if st.session_state.hybrid_error:
-            st.error(st.session_state.hybrid_error)
-        elif st.session_state.hybrid_results:
-            for i, doc in enumerate(st.session_state.hybrid_results, start=1):
-                _render_hit(i, None, doc, show_score=False)
-        else:
-            st.info(
-                "Enter a query and press **Search** or **Enter** to run hybrid retrieval."
+        elif search_mode == "Hybrid":
+            st.caption(
+                "Hybrid retrieval via EnsembleRetriever (BM25 + FAISS). "
+                f'Last query: "{query.strip() or "—"}"'
             )
 
-    st.caption(f"Mode selected: **{search_mode}**.")
+            if submitted and query.strip():
+                with st.spinner("Running hybrid retrieval…"):
+                    try:
+                        docs = _hybrid_search(query.strip())
+                        st.session_state.hybrid_results = list(docs)[:3]
+                        st.session_state.hybrid_error = None
+                    except FileNotFoundError as exc:
+                        st.session_state.hybrid_error = str(exc)
+                        st.session_state.hybrid_results = None
+                    except Exception as exc:  # pragma: no cover - defensive UI
+                        st.session_state.hybrid_error = f"{type(exc).__name__}: {exc}"
+                        st.session_state.hybrid_results = None
+
+            if st.session_state.hybrid_error:
+                st.error(st.session_state.hybrid_error)
+            elif st.session_state.hybrid_results:
+                for i, doc in enumerate(st.session_state.hybrid_results, start=1):
+                    _render_hit(i, None, doc, show_score=False)
+            else:
+                st.info(
+                    "Enter a query and press **Search** or **Enter** to run hybrid retrieval."
+                )
+
+        st.caption(f"Mode selected: **{search_mode}**.")
+
+    with rag_tab:
+        st.caption("Ask a question with hybrid RAG")
+        with st.form("rag_form", clear_on_submit=False):
+            rag_query = st.text_input(
+                "RAG query",
+                placeholder="e.g. Which headphones are best for long flights?",
+                label_visibility="collapsed",
+            )
+            rag_submitted = st.form_submit_button("Ask")
+
+        st.divider()
+        st.subheader("Answer")
+        st.caption(f'Last question: "{rag_query.strip() or "—"}"')
+
+        if rag_submitted and rag_query.strip():
+            with st.spinner("Generating answer with hybrid RAG…"):
+                try:
+                    st.session_state.rag_answer = _rag_answer(rag_query.strip())
+                    st.session_state.rag_error = None
+                except FileNotFoundError as exc:
+                    st.session_state.rag_error = str(exc)
+                    st.session_state.rag_answer = None
+                except Exception as exc:  # pragma: no cover - defensive UI
+                    st.session_state.rag_error = f"{type(exc).__name__}: {exc}"
+                    st.session_state.rag_answer = None
+
+        if st.session_state.rag_error:
+            st.error(st.session_state.rag_error)
+        elif st.session_state.rag_answer:
+            st.write(st.session_state.rag_answer)
+        else:
+            st.info(
+                "Enter a question and press **Ask** or **Enter** to run hybrid RAG."
+            )
 
 
 if __name__ == "__main__":
