@@ -29,7 +29,7 @@ def _semantic_search(query: str, *, index_path: str, top_k: int):
 
 def _hybrid_search(query: str):
     """Load hybrid stack only when hybrid search runs."""
-    from src.hybrid_retrieval import hybrid_retrieval
+    from src.hybrid import hybrid_retrieval
 
     return hybrid_retrieval(query)
 
