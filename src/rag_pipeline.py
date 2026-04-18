@@ -12,7 +12,7 @@ from transformers import logging as transformers_logging
 
 from src.constants import DEFAULT_PREPROCESSED_PARQUET, OUTPUTS_DIR, TOTAL_SIZE
 from src.helpers import convert_data_to_docs, read_preprocessed_parquet
-from src.hybrid_retrieval import hybrid_retrieval
+from src.hybrid import hybrid_retrieval
 
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 transformers_logging.set_verbosity_error()
