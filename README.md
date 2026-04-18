@@ -142,7 +142,11 @@ Where `query` is the desired query string.
 
 ## RAG Search
 
+Note that for the RAG search to succeed, it is necessary to have run `make bm25` and `make semantic` as detailed above.
+
 Perform a rag search for a query using the following steps in Python:
+
+### Hybrid Search
 
 ```python
 from src.rag_pipeline import ask_rag
@@ -150,7 +154,17 @@ from src.rag_pipeline import ask_rag
 ask_rag(query, hybrid=True)
 ```
 
-Where `query` is the desired query string and `hybrid` defines if the rag pipeline uses the hybrid retrieval or semantic retrieval
+Where `query` is the desired query string and `hybrid=True` indicates hybrid retrieval.
+
+### Semantic Search
+
+```python
+from src.rag_pipeline import ask_rag
+
+ask_rag(query, hybrid=False)
+```
+
+Where `query` is the desired query string and `hybrid=False` indicates semantic retrieval.
 
 ### Model Choice for RAG Workflows
 
@@ -174,3 +188,15 @@ flowchart TD
     O --> P[kimi-k2.5:cloud via Ollama API]
     P --> Q[Response]
 ```
+
+### Comment on Chunking
+
+Chunking is implemented as an option; in order to create and save a vector store with chunked embeddings, run the following in Python:
+
+```python
+from src.rag_pipeline import store_vectors
+
+store_vectors(chunk=True)
+```
+
+We do not recommend doing this for this due to the considerable amount of time it takes; however, it does give better results and the evaluation in `results/milestone2_discussion.md` is based on the output in the chunked version.
