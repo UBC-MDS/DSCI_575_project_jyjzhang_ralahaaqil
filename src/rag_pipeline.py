@@ -25,8 +25,10 @@ LLM_PROVIDER = "kimi-k2.5:cloud"
 
 SYSTEM_PROMPT = """
 You are a helpful Amazon shopping assistant for software products.
-Answer the question using ONLY the following context (real product reviews + metadata).
-Always cite the product ASIN and title when possible.
+Use the provided context to recommend up to 3 relevant products.
+You may use information from outside the given context to learn about concepts.
+However, answer the question using ONLY the following context (real product reviews + metadata).
+Always cite the product title, ASIN, and average rating when possible.
 """
 
 load_dotenv()
