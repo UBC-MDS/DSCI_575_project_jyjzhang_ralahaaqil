@@ -133,7 +133,7 @@ Where `query` is the desired query string and `k` is the number of results to re
 Perform a hybrid search for a query using the following steps in Python:
 
 ```python
-from src.hybrid_retrieval import hybrid_retrieval
+from src.hybrid import hybrid_retrieval
 
 hybrid_retrieval(query)
 ```
