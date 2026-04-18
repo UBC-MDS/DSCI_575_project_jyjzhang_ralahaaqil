@@ -132,10 +132,45 @@ Where `query` is the desired query string and `k` is the number of results to re
 
 Perform a hybrid search for a query using the following steps in Python:
 
-...
+```python
+from src.hybrid_retrieval import hybrid_retrieval
+
+hybrid_retrieval(query)
+```
+
+Where `query` is the desired query string.
 
 ## RAG Search
 
 Perform a rag search for a query using the following steps in Python:
 
-...
+```python
+from src.rag_pipeline import ask_rag
+
+ask_rag(query, hybrid=True)
+```
+
+Where `query` is the desired query string and `hybrid` defines if the rag pipeline uses the hybrid retrieval or semantic retrieval
+
+### Model Choice for RAG Workflows
+
+For generation, the current RAG pipeline uses `kimi-k2.5:cloud` through the Ollama API in `src/rag_pipeline.py`. Based on the discussion recorded in `results/milestone2_discussion.md`, this model was chosen because it produced the most consistently structured answers among the models tested while keeping latency acceptable for an interactive shopping-assistant workflow.
+
+### Workflow Diagram
+
+```mermaid
+flowchart TD
+    H[User query] --> I{RAG mode}
+    I -->|Semantic| J[FAISS similarity search]
+    I -->|Hybrid| K[BM25 retrieval]
+    I -->|Hybrid| L[FAISS similarity search]
+
+    K --> M[EnsembleRetriever]
+    L --> M
+    J --> N[Retrieved context]
+    M --> N
+
+    N --> O[Prompt builder]
+    O --> P[kimi-k2.5:cloud via Ollama API]
+    P --> Q[Response]
+```
