@@ -2,7 +2,7 @@ python-dotenv==1.2.1
 ipykernel==7.2.0
 datasets==3.6.0
 duckdb==1.4.3
-faiss==1.10.0
+faiss==1.5.3
 langchain==1.2.15
 langchain-community==0.3.31
 streamlit==1.55
