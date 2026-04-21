@@ -21,7 +21,7 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
 RAG_VECSTORE_PATH = OUTPUTS_DIR / "faiss_index"
-LLM_PROVIDER = "kimi-k2.5:cloud"
+LLM_PROVIDER = "gemini-3-flash-preview:cloud"
 
 SYSTEM_PROMPT = """
 You are a helpful Amazon shopping assistant for software products.
