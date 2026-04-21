@@ -15,6 +15,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.bm25 import search
+from src.runtime_artifacts import (
+    DEFAULT_ARTIFACTS_S3_URI,
+    ensure_runtime_artifacts,
+    runtime_artifacts_present,
+)
 
 REVIEWS_PARQUET = PROJECT_ROOT / "data" / "raw" / "reviews.parquet"
 FAISS_INDEX_DIR = PROJECT_ROOT / "outputs" / "faiss_index"
@@ -197,6 +202,17 @@ def _hide_streamlit_chrome() -> None:
 def main() -> None:
     st.set_page_config(page_title="Review search", layout="centered")
     _hide_streamlit_chrome()
+    if not runtime_artifacts_present():
+        try:
+            with st.spinner("Downloading app data from S3..."):
+                ensure_runtime_artifacts()
+        except Exception as exc:
+            st.error(
+                "Failed to download required runtime artifacts from "
+                f"`{DEFAULT_ARTIFACTS_S3_URI}`: {type(exc).__name__}: {exc}"
+            )
+            st.stop()
+
     st.title("Product review search")
     _init_bm25_session()
     _init_semantic_session()
