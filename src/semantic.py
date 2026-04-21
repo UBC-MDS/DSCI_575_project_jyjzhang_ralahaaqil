@@ -34,7 +34,7 @@ def create_faiss_index(
     model_name: str = "all-MiniLM-L6-v2",
     total_size: int = TOTAL_SIZE,
 ):
-	"""Creates a FAISS index from the preprocessed Parquet data and saves it to disk."""
+    """Creates a FAISS index from the preprocessed Parquet data and saves it to disk."""
     model = HuggingFaceEmbeddings(model_name=model_name)
     index = faiss.IndexFlatL2(384)
 
@@ -60,7 +60,7 @@ def faiss_search(
     top_k: int = 5,
     model_name: str = "all-MiniLM-L6-v2",
 ):
-	"""Performs a FAISS search on the query and returns the top-k results."""
+    """Performs a FAISS search on the query and returns the top-k results."""
     model = HuggingFaceEmbeddings(model_name=model_name)
     vector_store = FAISS.load_local(
         index_path, model, allow_dangerous_deserialization=True
