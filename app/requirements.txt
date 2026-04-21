@@ -1,5 +1,4 @@
 python-dotenv==1.2.1
-python==3.13
 ipykernel==7.2.0
 datasets==3.6.0
 duckdb==1.4.3
