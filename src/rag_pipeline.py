@@ -43,6 +43,7 @@ def store_vectors(
     chunk_args: dict = {"chunk_size": 100, "chunk_overlap": 20},
     model_name: str = "all-MiniLM-L6-v2",
 ):
+    """Stores vectors in FAISS index to disk."""
     print("Reading data...")
     data = read_preprocessed_parquet(path=path, size=total_size)
     print("Converting to documents...")
@@ -58,6 +59,7 @@ def retrieve(
     model_name: str = "all-MiniLM-L6-v2",
     top_k: int = 5,
 ):
+    """Retrieves documents from FAISS index."""
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
     vectorstore = FAISS.load_local(
         index_path, embeddings, allow_dangerous_deserialization=True
@@ -70,6 +72,7 @@ def retrieve(
 
 
 def build_prompt(context: str, input: str):
+    """Builds the prompt for the LLM."""
     return f"""
     Customer Reviews and Metadata:
     {context}
@@ -82,6 +85,7 @@ def build_prompt(context: str, input: str):
 
 
 def build_context(docs):
+    """Builds the context for the prompt from retrieved documents."""
     return "\n\n".join(
         [
             f"Product ASIN: {doc.metadata.get('parent_asin', 'N/A')}\n"
@@ -95,6 +99,7 @@ def build_context(docs):
 
 
 def setup_client():
+    """Sets up the client for the LLM."""
     client = Client(
         host="https://ollama.com",
         headers={"Authorization": f"Bearer {ollama_token}"},
@@ -103,6 +108,7 @@ def setup_client():
 
 
 def ask_rag(query: str, hybrid: bool = False):
+    """Asks the RAG model a question and returns the response."""
     if hybrid:
         docs = hybrid_retrieval(query)
     else:

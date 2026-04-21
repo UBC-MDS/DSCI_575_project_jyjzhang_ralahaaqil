@@ -42,6 +42,7 @@ def _rag_answer(query: str) -> str:
 
 
 def _truncate(text: str, max_chars: int = 200) -> str:
+    """Truncates the text to a maximum number of characters, preserving full words."""
     text = text.strip()
     if len(text) <= max_chars:
         return text
@@ -49,12 +50,14 @@ def _truncate(text: str, max_chars: int = 200) -> str:
 
 
 def _rating_stars(rating: float) -> str:
+    """Converts a rating to a star rating string."""
     n = max(0, min(5, round(rating)))
     filled, empty = "\u2605", "\u2606"
     return filled * n + empty * (5 - n)
 
 
 def _init_bm25_session() -> None:
+    """Initializes the BM25 session state variables."""
     if "bm25_results" not in st.session_state:
         st.session_state.bm25_results = None
     if "bm25_error" not in st.session_state:
@@ -62,6 +65,7 @@ def _init_bm25_session() -> None:
 
 
 def _init_semantic_session() -> None:
+    """Initializes the semantic session state variables."""
     if "semantic_results" not in st.session_state:
         st.session_state.semantic_results = None
     if "semantic_error" not in st.session_state:
@@ -69,6 +73,7 @@ def _init_semantic_session() -> None:
 
 
 def _init_hybrid_session() -> None:
+    """Initializes the hybrid session state variables."""
     if "hybrid_results" not in st.session_state:
         st.session_state.hybrid_results = None
     if "hybrid_error" not in st.session_state:
@@ -76,6 +81,7 @@ def _init_hybrid_session() -> None:
 
 
 def _init_rag_session() -> None:
+    """Initializes the RAG session state variables."""
     if "rag_answer" not in st.session_state:
         st.session_state.rag_answer = None
     if "rag_error" not in st.session_state:
@@ -83,6 +89,7 @@ def _init_rag_session() -> None:
 
 
 def _metadata_rating(metadata: dict) -> float | None:
+    """Returns the average rating from the metadata, or None if not available."""
     raw = metadata.get("average_rating")
     if raw is None:
         return None
@@ -126,6 +133,7 @@ def _first_raw_review_text(parent_asin: str) -> str | None:
 
 
 def _review_snippet_for_hit(doc: Document, parent_asin: str | None) -> str:
+    """Returns a snippet of the first review for a product, or the document content if no review is available."""
     if parent_asin:
         raw = _first_raw_review_text(parent_asin)
         if raw:
@@ -141,6 +149,7 @@ def _render_hit(
     metric_label: str = "Retrieval score",
     show_score: bool = True,
 ) -> None:
+    """Renders a single search hit, showing the product title, rating, and a review snippet."""
     md = doc.metadata
     product = md.get("product")
     asin = md.get("parent_asin")
@@ -173,6 +182,7 @@ def _render_hit(
 
 
 def _hide_streamlit_chrome() -> None:
+    """Hides the Streamlit chrome UI elements, including the menu and deploy buttons."""
     st.markdown(
         """
         <style>
@@ -236,7 +246,9 @@ def main() -> None:
             if st.session_state.bm25_error:
                 st.error(st.session_state.bm25_error)
             elif st.session_state.bm25_results:
-                for i, (doc, score) in enumerate(st.session_state.bm25_results, start=1):
+                for i, (doc, score) in enumerate(
+                    st.session_state.bm25_results, start=1
+                ):
                     _render_hit(i, score, doc)
             else:
                 st.info(

@@ -8,6 +8,7 @@ DEBUG = False
 
 
 def download_data():
+    """Stores vectors in FAISS index to disk."""
     print("======================== DOWNLOADING DATA ==========================")
     Path("data/raw").mkdir(exist_ok=True)
     print("Created data/raw directory")
