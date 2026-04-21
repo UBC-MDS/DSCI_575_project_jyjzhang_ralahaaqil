@@ -9,14 +9,14 @@ import duckdb
 import streamlit as st
 from langchain_core.documents import Document
 
-from src.bm25 import search
-
 APP_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = APP_DIR.parent
-REVIEWS_PARQUET = PROJECT_ROOT / "data" / "raw" / "reviews.parquet"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.bm25 import search
+
+REVIEWS_PARQUET = PROJECT_ROOT / "data" / "raw" / "reviews.parquet"
 FAISS_INDEX_DIR = PROJECT_ROOT / "outputs" / "faiss_index"
 
 
