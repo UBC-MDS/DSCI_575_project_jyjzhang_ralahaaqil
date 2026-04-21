@@ -61,10 +61,11 @@ Create a `.env` file with the following contents, filling in the ellipses with y
 ```
 HF_TOKEN=...
 OLLAMA_API_KEY=...
-ANTHROPIC_API_KEY=...  # Last milestone only
 ```
 
 ### Setting Up the Project
+
+**It is possible to directly download the data, vector index, and BM25 index from S3 and run the app using `make run-app`. However, the indices will be built from a sample of 25,000 products instead of the full 84,804. It is possible to download and process the data, then create the indices manually using all of the products using the instructions below.**
 
 After activating `575-project`, you can run the full pipeline in one step with `make setup` (or `make setup-sample` to use a sample run for the semantic index - faster setup). The Makefile will handle downloading, cleaning, and indexing the data, and you can then run the web app with `make run-app`. You can also run the individual steps manually.
 
@@ -142,7 +143,7 @@ Where `query` is the desired query string.
 
 ## RAG Search
 
-Note that for the RAG search to succeed, it is necessary to have run `make bm25` and `make semantic` as detailed above.
+Note that for the RAG search to succeed, it is necessary to have the vector index and BM25 index downloaded locally. This can be done by running `make bm25` and `make semantic` as detailed above, or by downloading the indices (built using a subset of the full dataset) from S3, which is done automatically when running `make run-app` while the indices do not exist.
 
 Perform a rag search for a query using the following steps in Python:
 
@@ -169,6 +170,8 @@ Where `query` is the desired query string and `hybrid=False` indicates semantic 
 ### Model Choice for RAG Workflows
 
 For generation, the current RAG pipeline uses `kimi-k2.5:cloud` through the Ollama API in `src/rag_pipeline.py`. Based on the discussion recorded in `results/milestone2_discussion.md`, this model was chosen because it produced the most consistently structured answers among the models tested while keeping latency acceptable for an interactive shopping-assistant workflow.
+
+**NOTE:** As of milestone 2.5, `kimi-k2.5:cloud` is no longer accessible through the Ollama API without a subscription due to Kimi releasing a new model. Therefore, we have switched to our alternative model, `gemini-3-flash-preview:cloud`.
 
 ### Workflow Diagram
 
