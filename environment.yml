@@ -14,6 +14,7 @@ dependencies:
   - streamlit=1.55
   - pip
   - pip:
+      - boto3==1.42.61
       - rank-bm25==0.2.2
       - langchain_huggingface==1.2.1
       - sentence-transformers==5.4.0
