@@ -1,10 +1,10 @@
 PYTHON ?= python
 
-.PHONY: download-data clean-data bm25 semantic semantic-sample run-app conda-env all all-sample
+.PHONY: download-data clean-data bm25 bm25-sample semantic semantic-sample run-app conda-env all all-sample setup setup-sample
 
 setup: download-data clean-data bm25 semantic
 
-setup-sample: download-data clean-data bm25 semantic-sample
+setup-sample: download-data clean-data bm25-sample semantic-sample
 
 conda-env:
 	@if conda env list | awk '$$1 == "575-project" {found=1} END {exit !found}'; then \
@@ -23,6 +23,9 @@ clean-data:
 
 bm25:
 	$(PYTHON) -m src.bm25
+
+bm25-sample:
+	$(PYTHON) -m src.bm25 --sample
 
 semantic:
 	$(PYTHON) -m src.semantic
