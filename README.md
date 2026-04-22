@@ -22,6 +22,10 @@ Preprocessing is implemented with **DuckDB** over Parquet (`src/preprocessing/cl
 2. **Metadata** — Copy `title` to `product` -> turn list columns `categories`, `features`, and `description` into comma-separated strings -> replace missing `average_rating` / `rating_number` with **-1** -> parse `details` as JSON and expand selected keys (`Developed By`, `Version`, `Application Permissions`, `Minimum Operating System`, `Manufacturer`, `Language`) into columns -> concatenate those fields plus `features`, `description`, `store`, `categories`, and `title` into `**metadata_content`**.
 3. **Merge** — **Inner join** on `parent_asin` so a row exists only when both aggregated verified reviews and metadata exist -> append `reviews_content` and `metadata_content` into `**data_content`** for indexing and search.
 
+## Deployed App
+
+You can access the deployed streamlit app using https://575-proj.streamlit.app/. Note that this deployment uses a sample of the full dataset due to compute constraints with Streamlit community cloud.
+
 ## Setup
 
 ### Cloning the Repository
