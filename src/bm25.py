@@ -1,3 +1,4 @@
+import argparse
 import pickle
 from heapq import nlargest
 from pathlib import Path
@@ -7,19 +8,21 @@ from langchain_core.documents import Document
 
 from src.constants import (
     BM25_PICKLE_PATH,
+    TOTAL_SIZE,
 )
 from src.helpers import convert_data_to_docs, read_preprocessed_parquet
 
 
 def create_bm25_pickle(
     output_path: Path = BM25_PICKLE_PATH,
+    total_size: int = TOTAL_SIZE,
 ) -> None:
-    """Build a BM25 retriever from all preprocessed rows and save it as one pickle.
+    """Build a BM25 retriever from preprocessed rows and save it as one pickle.
 
-    Each row becomes a LangChain ``Document`` with ``page_content`` from ``data_content``
+    Each row in the selected subset becomes a LangChain ``Document`` with ``page_content`` from ``data_content``
     and metadata from ``product``, ``parent_asin``, ``average_rating``, and ``rating_number``.
     """
-    data = read_preprocessed_parquet()
+    data = read_preprocessed_parquet(size=total_size)
     docs = convert_data_to_docs(data)
 
     retriever = BM25Retriever.from_documents(docs)
@@ -47,11 +50,23 @@ def search(
     return [(retriever.docs[idx], float(scores[idx])) for idx in top_indices]
 
 
-def main() -> None:
+def main(sample: bool = False) -> None:
     print("======================== BUILDING BM25 INDEX ==========================")
-    create_bm25_pickle()
+    if sample:
+        create_bm25_pickle(total_size=25000)
+    else:
+        create_bm25_pickle()
     print(f"\nBM25 index saved to {BM25_PICKLE_PATH}")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Create BM25 shard pickles from preprocessed Parquet."
+    )
+    parser.add_argument(
+        "--sample",
+        action="store_true",
+        help=f"Create index on 10000 rows instead of the full {TOTAL_SIZE:,}-row dataset.",
+    )
+    args = parser.parse_args()
+    main(sample=args.sample)
