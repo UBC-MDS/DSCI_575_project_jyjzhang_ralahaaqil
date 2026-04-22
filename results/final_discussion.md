@@ -239,7 +239,9 @@ Note that this deployment uses a sample of the full dataset due to compute const
 ## Step 3: Improve Documentation and Code Quality
 
 ### Documentation Update
-- Summary of `README` improvements
+
+- Additional instructions on how to run the app using indices created from a subset of the data, downloaded from S3.
+- Added link to deployed streamlit app.
 
 ### Code Quality Changes
 
