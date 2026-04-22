@@ -247,23 +247,4 @@ We added missing docstrings to functions in our code files: specifically, `app/a
 
 ## Step 4: Cloud Deployment Plan
 
-### 1. Data Storage
-
-We will store the raw data, processed data, vector index, and BM25 index in S3. 
-
-Where will you store the following?
-raw data
-processed data
-vector index
-BM25 index
-
-### 2. Compute
-
-Where will your app run?
-How will you handle multiple users (concurrency)?
-How will you handle LLM inference (API vs hosted model)?
-
-### 3. Streaming/Updates
-
-How will you incorporate new products in production?
-How will your pipeline stay up to date?
+Assuming deployment on AWS, we will store the raw data, processed data, vector index, and BM25 index in S3; Spark can be used to clean, chunk, and then create the embeddings for each document from the raw data. The app can be deployed on an EC2 instance using FastAPI. We can then run it using uvicorn and specify multiple asynchronous workers so the apps is able handle multiple users at once. The LLM inference can be handled through an Ollama API like it currently is. New products can be incorporated in production by using a pipeline that triggers whenever new data is added to S3; Spark can be used to clean, chunk, and create the embeddings for the data, then rebuild the BM25 and vector indexes. The pipeline can then switch over to the new indices, allowing it to stay up to date.
