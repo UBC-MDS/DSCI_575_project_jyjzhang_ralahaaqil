@@ -219,12 +219,16 @@ One observation is that the `kimi-k2.5` model automatically includes the number 
 
 Both models are fairly similar overall, and a lot of the differences come down more to personal preference. In this case, we will stick with the existing `kimi-k2.5` model; its willingness to make certain assumptions about the query (for example, mahjong for 'game with pung and chow' and artifical intelligence for 'AI') makes its recommendations more focused, and a user can always follow up on the query if they do want something different (for example, a game including 'chow' as in food, or 'AI' as in American Idol).
 
+**NOTE:** While in the process of completing this milestone, we found `kimi-k2.5:cloud` is no longer accessible through the Ollama API without a subscription due to Kimi releasing a new model on April 20. Therefore, we have switched to our alternative model, `gemini-3-flash-preview:cloud`.
+
 ## Step 2: Additional Feature (state which option you chose)
 
 ### What You Implemented
 
 - Description of the feature
 - Key results or examples
+
+Note that this deployment uses a sample of the full dataset due to compute constraints with Streamlit community cloud.
   
 ## Step 3: Improve Documentation and Code Quality
 
@@ -232,7 +236,28 @@ Both models are fairly similar overall, and a lot of the differences come down m
 - Summary of `README` improvements
 
 ### Code Quality Changes
-- Summary of cleanups
+
+We added missing docstrings to functions in our code files: specifically, `app/app.py`, `src/download_data.py`, `src/hybrid.py`, `src/preprocessing/clean_data.py`, `src/rag_pipeline.py`, and `src/semantic.py`. All other requirements were already fulfilled.
 
 ## Step 4: Cloud Deployment Plan
-(See Step 4 above for required subsections)
+
+### 1. Data Storage
+
+We will store the raw data, processed data, vector index, and BM25 index in S3. 
+
+Where will you store the following?
+raw data
+processed data
+vector index
+BM25 index
+
+### 2. Compute
+
+Where will your app run?
+How will you handle multiple users (concurrency)?
+How will you handle LLM inference (API vs hosted model)?
+
+### 3. Streaming/Updates
+
+How will you incorporate new products in production?
+How will your pipeline stay up to date?
